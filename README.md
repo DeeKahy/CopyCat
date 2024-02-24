@@ -10,10 +10,9 @@ To install `ccat`, follow these steps:
 1. **Clone the repository:**
 
    ```sh
-   git clone https://github.com/yourusername/ccat.git
-   cd ccat
+   git clone https://github.com/DeeKahy/CopyCat.git
+   cd CopyCat
    ```
-
 2. **Compile the project:**
 
    Ensure you have Rust and Cargo installed. If not, install them from [rustup](https://rustup.rs/).
