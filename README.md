@@ -27,8 +27,14 @@ To install `ccat`, follow these steps:
 
    After compilation, the binary will be located at `./target/release/ccat`. Move this binary to a location in your PATH for easy access:
 
+Linux/MacOS:
    ```sh
    cp ./target/release/ccat /usr/local/bin/ccat
+   ```
+
+Windows:
+   ```sh
+   cp ./target/release/ccat.exe /usr/local/bin/ccat
    ```
 
    Adjust the destination path as necessary depending on your operating system and preferences.
@@ -48,10 +54,10 @@ This will copy the contents of all files in the current directory (and its subdi
 `ccat` allows you to exclude specific files, folders, or entire file types by passing them as arguments. Here are some examples:
 
 - **Exclude specific files or folders:**
-
   ```sh
   ccat exclude_this_file.txt another_file_to_exclude.txt
   ```
+
 
 - **Exclude a whole file type:**
 
