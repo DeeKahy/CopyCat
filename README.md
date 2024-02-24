@@ -33,7 +33,6 @@ Linux/MacOS:
    ```
 
    Adjust the destination path as necessary depending on your operating system and preferences.
-   **If using windows the file is `called ccat.exe`**
 
 
 ## Usage
