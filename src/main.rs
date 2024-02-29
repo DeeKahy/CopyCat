@@ -13,6 +13,7 @@ fn main() {
     if gitignore.exists() {
         match read_file(gitignore) {
             Ok(contents) => {
+                println!("Found .gitignore file, adding its contents to the blacklist");
                 for line in contents.lines() {
                     if !line.starts_with("#") && !line.is_empty() {
                         args.push(line.to_string());
