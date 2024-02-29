@@ -1,12 +1,29 @@
+use clipboard::{ClipboardContext, ClipboardProvider};
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
-use clipboard::{ClipboardContext, ClipboardProvider};
 use walkdir::WalkDir;
 
 fn main() {
-    let args: Vec<String> = env::args().skip(1).collect();
+    let mut args: Vec<String> = env::args().skip(1).collect();
+
+    // find the gitignore file and add its contents to the blacklist
+    let gitignore = Path::new(".gitignore");
+    if gitignore.exists() {
+        match read_file(gitignore) {
+            Ok(contents) => {
+                println!("Found .gitignore file, adding its contents to the blacklist");
+                for line in contents.lines() {
+                    if !line.starts_with("#") && !line.is_empty() {
+                        args.push(line.to_string());
+                    }
+                }
+            }
+            Err(_) => (),
+        }
+    }
+
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
     let mut clipboard_content = String::new();
 
@@ -41,6 +58,9 @@ fn read_file(path: &Path) -> Result<String, std::io::Error> {
 
     match String::from_utf8(contents) {
         Ok(text) => Ok(text),
-        Err(_) => Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Not a UTF-8 file")),
+        Err(_) => Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Not a UTF-8 file",
+        )),
     }
 }
