@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    println!("Clipboard content length is: {}", clipboard_content.len());
+    println!("Clipboard content length: {}", clipboard_content.len());
     println!("First 100 characters of content: {:?}", clipboard_content.chars().take(100).collect::<String>());
 
     // Attempt to set clipboard content using cli-clipboard
