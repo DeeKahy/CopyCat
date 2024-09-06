@@ -1,0 +1,298 @@
+"./flake.nix"```
+{
+  description = "Rust project with required dependencies and automatic cargo run";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+        };
+      in
+      {
+        devShell = pkgs.mkShell {
+          buildInputs = [
+            pkgs.rustup
+            pkgs.nodejs
+            pkgs.cargo-tauri
+            pkgs.pkg-config
+            pkgs.cargo-tauri
+            pkgs.webkitgtk
+            pkgs.libsoup
+            pkgs.git
+            pkgs.openssl
+            pkgs.glib-networking
+            pkgs.python3
+            pkgs.wl-clipboard
+            
+          ];
+
+          shellHook = ''
+            rustup toolchain install stable
+            rustup default stable
+            export GIO_MODULE_DIR=/nix/store/j9wkqd90c3kd7xrwyqg1imfj20l62k65-glib-networking-2.80.0/lib/gio/modules/
+            
+          '';
+        };
+      });
+}```"./Cargo.toml"```[package]
+name = "ccat"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+walkdir = "2.4.0"
+cli-clipboard = "0.4"```"./flake.lock"```{
+  "nodes": {
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1710146030,
+        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1725407940,
+        "narHash": "sha256-tiN5Rlg/jiY0tyky+soJZoRzLKbPyIdlQ77xVgREDNM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "6f6c45b5134a8ee2e465164811e451dcb5ad86e3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-24.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+```"./src/main.rs"```use cli_clipboard::{ClipboardContext, ClipboardProvider};
+use std::env;
+use std::fs::File;
+use std::io::{BufReader, Read, Write};
+use std::path::Path;
+use walkdir::WalkDir;
+use std::process::Command;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut args: Vec<String> = env::args().skip(1).collect();
+
+    // Find the gitignore file and add its contents to the blacklist
+    let gitignore = Path::new(".gitignore");
+    if gitignore.exists() {
+        match read_file(gitignore) {
+            Ok(contents) => {
+                println!("Found .gitignore file, adding its contents to the blacklist");
+                for line in contents.lines() {
+                    if !line.starts_with("#") && !line.is_empty() {
+                        args.push(line.to_string());
+                    }
+                }
+            }
+            Err(e) => eprintln!("Error reading .gitignore: {}", e),
+        }
+    }
+
+    let mut clipboard_content = String::new();
+    'outer: for entry in WalkDir::new(".").into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        // Skip if the path matches any blacklist item
+        for arg in &args {
+            if path.ends_with(arg) || path.to_str().map_or(false, |s| s.contains(arg)) {
+                continue 'outer;
+            }
+        }
+        if path.is_file() {
+            match read_file(path) {
+                Ok(contents) => {
+                    clipboard_content.push_str(&format!("{:?}```{}```", path, contents));
+                }
+                Err(_) => continue, // Skip non-text files or errors
+            }
+        }
+    }
+
+    println!("Clipboard content length: {}", clipboard_content.len());
+    println!("First 100 characters of content: {:?}", clipboard_content.chars().take(100).collect::<String>());
+
+    // Attempt to set clipboard content using cli-clipboard
+    let mut ctx: ClipboardContext = ClipboardProvider::new()?;
+    match ctx.set_contents(clipboard_content.clone()) {
+        Ok(_) => println!("Successfully set clipboard contents using cli-clipboard"),
+        Err(e) => eprintln!("Failed to set clipboard contents using cli-clipboard: {:?}", e),
+    }
+
+    // Always try Wayland method
+    println!("Attempting to use wl-copy...");
+    match Command::new("wl-copy")
+        .arg(&clipboard_content)
+        .output() {
+        Ok(output) => {
+            if output.status.success() {
+                println!("Successfully set clipboard contents using wl-copy");
+            } else {
+                eprintln!("Failed to set clipboard contents using wl-copy");
+                eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+            }
+        }
+        Err(e) => eprintln!("Error executing wl-copy: {}", e),
+    }
+
+    // Verify clipboard content
+    println!("Verifying clipboard content...");
+    match Command::new("wl-paste").output() {
+        Ok(output) => {
+            if output.status.success() {
+                let pasted_content = String::from_utf8_lossy(&output.stdout);
+                println!("Clipboard content (first 100 chars): {:?}", 
+                    pasted_content.chars().take(100).collect::<String>());
+                if pasted_content == clipboard_content {
+                    println!("Clipboard content matches expected content.");
+                } else {
+                    println!("Clipboard content does not match expected content.");
+                }
+            } else {
+                eprintln!("Failed to read clipboard contents using wl-paste");
+                eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+            }
+        }
+        Err(e) => eprintln!("Error executing wl-paste: {}", e),
+    }
+
+    // Try writing to a file as a last resort
+    let output_file = "clipboard_content.txt";
+    println!("Writing content to file: {}", output_file);
+    if let Err(e) = std::fs::write(output_file, &clipboard_content) {
+        eprintln!("Failed to write to file: {}", e);
+    } else {
+        println!("Successfully wrote content to file.");
+    }
+
+    Ok(())
+}
+
+fn read_file(path: &Path) -> Result<String, std::io::Error> {
+    let file = File::open(path)?;
+    let mut buf_reader = BufReader::new(file);
+    let mut contents = Vec::new();
+    buf_reader.read_to_end(&mut contents)?;
+    String::from_utf8(contents).map_err(|_| std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        "Not a UTF-8 file",
+    ))
+}
+```"./README.md"```# ccat
+
+`ccat` (Copy CAT) is a simple Rust utility designed to walk a project tree and copy all text readable files to the clipboard with file names and file locations. It's particularly useful for quickly sharing code snippets or file contents without manually opening and copying from each file.
+Personally i use to to quicky give chatgpt the context of my application when i face some error i dont understand.
+
+## Installation
+
+To install `ccat`, follow these steps:
+
+1. **Clone the repository:**
+
+   ```sh
+   git clone https://github.com/DeeKahy/CopyCat.git
+   cd CopyCat
+   ```
+2. **Compile the project:**
+
+   Ensure you have Rust and Cargo installed. If not, install them from [rustup](https://rustup.rs/).
+
+   Then run:
+
+   ```sh
+   cargo build --release
+   ```
+
+3. **Place the binary in your PATH:**
+
+   After compilation, the binary will be located at `./target/release/ccat`. Move this binary to a location in your PATH for easy access:
+
+Linux/MacOS:
+   ```sh
+   cp ./target/release/ccat /usr/local/bin/ccat
+   ```
+
+   Adjust the destination path as necessary depending on your operating system and preferences.
+
+
+## Usage
+
+To use `ccat`, navigate to a directory and run:
+
+```sh
+ccat
+```
+
+This will copy the contents of all files in the current directory (and its subdirectories) to the clipboard, excluding binary and non-text files.
+
+### Excluding Files, Folders, and File Types
+
+`ccat` allows you to exclude specific files, folders, or entire file types by passing them as arguments. Here are some examples:
+
+- **Exclude specific files or folders:**
+  ```sh
+  ccat exclude_this_file.txt another_file_to_exclude.txt
+  ```
+
+
+- **Exclude a whole file type:**
+
+  To exclude all `.log` files, you can use:
+
+  ```sh
+  ccat '*.log'
+  ```
+
+  Note: Use quotes around the file type to ensure the shell does not expand the wildcard.
+
+## .gitignore
+
+Files and directories listed in `.gitignore` are not automatically excluded by `ccat`. You must manually specify them as arguments if you wish to exclude them.
+```
