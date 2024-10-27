@@ -1,4 +1,3 @@
-
 {
   description = "Rust project with required dependencies and automatic cargo run";
 
