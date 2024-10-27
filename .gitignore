@@ -2,3 +2,5 @@
 /.git
 /Cargo.lock
 test
+/result/*
+result

@@ -14,6 +14,8 @@
         };
       in
       {
+        packages.default = pkgs.callPackage ./ccat.nix {};
+
         devShell = pkgs.mkShell {
           buildInputs = [
             pkgs.rustup
@@ -28,14 +30,12 @@
             pkgs.glib-networking
             pkgs.python3
             pkgs.wl-clipboard
-            
           ];
 
           shellHook = ''
             rustup toolchain install stable
             rustup default stable
             export GIO_MODULE_DIR=/nix/store/j9wkqd90c3kd7xrwyqg1imfj20l62k65-glib-networking-2.80.0/lib/gio/modules/
-            
           '';
         };
       });
