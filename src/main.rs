@@ -15,6 +15,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             default_excludes.push("README.md".to_string());
             default_excludes.push(".lock".to_string());
             default_excludes.push("target/".to_string());
+            default_excludes.push(".git/".to_string());
+            default_excludes.push("node_modules/".to_string());
+            default_excludes.push("package-lock.json".to_string());
+            default_excludes.push(".css".to_string());
+            default_excludes.push(".vscode/".to_string());
+            default_excludes.push(".idea/".to_string());
+            default_excludes.push("dist/".to_string());
+            default_excludes.push("dist/".to_string());
+            default_excludes.push(".env".to_string());
             // You can add more default excludes here
             i += 1;
         } else {
