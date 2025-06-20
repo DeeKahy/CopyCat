@@ -5,7 +5,7 @@ Personally i use to to quicky give chatgpt the context of my application when i 
 
 ## Installation
 
-To install `ccat`, follow these steps:
+To install `ccat` from source, follow these steps, otherwise run nix-shell -p copycat:
 
 1. **Clone the repository:**
 
